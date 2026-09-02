@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -11,6 +12,9 @@ interface CaseDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCase(caseEntity: CaseEntity): Long
+
+    @Update
+    suspend fun updateCase(caseEntity: CaseEntity)
 
     @Query("SELECT * FROM cases ORDER BY createdAt DESC")
     fun getAllCases(): Flow<List<CaseEntity>>
@@ -22,6 +26,7 @@ interface CaseDao {
            OR newCaseNumber LIKE '%' || :query || '%'
            OR oldCaseNumber LIKE '%' || :query || '%'
            OR partyName LIKE '%' || :query || '%'
+           OR oppositeParty LIKE '%' || :query || '%'
         ORDER BY createdAt DESC
         """
     )

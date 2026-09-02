@@ -22,10 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WorkOutline
 import androidx.compose.material3.AlertDialog
@@ -85,20 +87,39 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
     var selectedTab by remember { mutableStateOf(0) }
     var showAddCase by remember { mutableStateOf(false) }
+    var selectedCase by remember { mutableStateOf<CaseEntity?>(null) }
 
     val cases by viewModel.cases.collectAsState()
+
+    if (selectedCase != null) {
+
+        CaseDetailsScreen(
+            caseItem = selectedCase!!,
+            viewModel = viewModel,
+            onBack = {
+                selectedCase = null
+            }
+        )
+
+        return
+    }
 
     Scaffold(
         containerColor = LightBackground,
 
         floatingActionButton = {
+
             if (selectedTab == 1) {
+
                 Button(
-                    onClick = { showAddCase = true },
+                    onClick = {
+                        showAddCase = true
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Blue
                     )
                 ) {
+
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null
@@ -112,6 +133,7 @@ fun EJagritiApp(viewModel: CaseViewModel) {
         },
 
         bottomBar = {
+
             NavigationBar {
 
                 NavigationBarItem(
@@ -170,6 +192,9 @@ fun EJagritiApp(viewModel: CaseViewModel) {
             1 -> CasesScreen(
                 cases = cases,
                 viewModel = viewModel,
+                onCaseClick = {
+                    selectedCase = it
+                },
                 modifier = Modifier.padding(paddingValues)
             )
 
@@ -182,26 +207,26 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
     if (showAddCase) {
 
-        AddCaseDialog(
-
+        CaseFormDialog(
+            title = "Add New Case",
+            initialCase = null,
             onDismiss = {
                 showAddCase = false
             },
-
-            onSave = { caseData ->
+            onSave = { form ->
 
                 viewModel.addCase(
-                    litigationId = caseData.litigationId,
-                    newCaseNumber = caseData.newCaseNumber,
-                    oldCaseNumber = caseData.oldCaseNumber,
-                    partyName = caseData.partyName,
-                    oppositeParty = caseData.oppositeParty,
-                    courtCommission = caseData.courtCommission,
-                    caseType = caseData.caseType,
-                    state = caseData.state,
-                    district = caseData.district,
-                    nextHearingDate = caseData.nextHearingDate,
-                    caseStatus = caseData.caseStatus
+                    litigationId = form.litigationId,
+                    newCaseNumber = form.newCaseNumber,
+                    oldCaseNumber = form.oldCaseNumber,
+                    partyName = form.partyName,
+                    oppositeParty = form.oppositeParty,
+                    courtCommission = form.courtCommission,
+                    caseType = form.caseType,
+                    state = form.state,
+                    district = form.district,
+                    nextHearingDate = form.nextHearingDate,
+                    caseStatus = form.caseStatus
                 )
 
                 showAddCase = false
@@ -315,7 +340,6 @@ fun DashboardScreen(
         }
 
         item {
-
             InfoCard(
                 title = "Litigation ID",
                 description = "Organisation's unique litigation reference"
@@ -323,7 +347,6 @@ fun DashboardScreen(
         }
 
         item {
-
             InfoCard(
                 title = "New Case Number",
                 description = "Current e-Jagriti case number"
@@ -331,7 +354,6 @@ fun DashboardScreen(
         }
 
         item {
-
             InfoCard(
                 title = "Old Case Number",
                 description = "Legacy case reference for searching and mapping"
@@ -407,6 +429,7 @@ fun InfoCard(
 fun CasesScreen(
     cases: List<CaseEntity>,
     viewModel: CaseViewModel,
+    onCaseClick: (CaseEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -450,9 +473,7 @@ fun CasesScreen(
                 modifier = Modifier.fillMaxWidth(),
 
                 label = {
-                    Text(
-                        "Search Litigation ID / New / Old Case No."
-                    )
+                    Text("Search Litigation ID / New / Old Case No.")
                 },
 
                 leadingIcon = {
@@ -513,6 +534,10 @@ fun CasesScreen(
                 CaseCard(
                     caseItem = caseItem,
 
+                    onClick = {
+                        onCaseClick(caseItem)
+                    },
+
                     onDelete = {
                         deleteCase = caseItem
                     }
@@ -524,7 +549,6 @@ fun CasesScreen(
     deleteCase?.let { selectedCase ->
 
         AlertDialog(
-
             onDismissRequest = {
                 deleteCase = null
             },
@@ -547,7 +571,6 @@ fun CasesScreen(
                         deleteCase = null
                     }
                 ) {
-
                     Text(
                         "Delete",
                         color = Color.Red
@@ -572,11 +595,17 @@ fun CasesScreen(
 @Composable
 fun CaseCard(
     caseItem: CaseEntity,
+    onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onClick()
+            },
+
         shape = RoundedCornerShape(16.dp)
     ) {
 
@@ -622,25 +651,343 @@ fun CaseCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            CaseDetail(
-                "Litigation ID",
-                caseItem.litigationId
+            CaseDetail("Litigation ID", caseItem.litigationId)
+            CaseDetail("New Case No.", caseItem.newCaseNumber)
+            CaseDetail("Old Case No.", caseItem.oldCaseNumber)
+            CaseDetail("Next Hearing", caseItem.nextHearingDate)
+        }
+    }
+}
+
+@Composable
+fun CaseDetailsScreen(
+    caseItem: CaseEntity,
+    viewModel: CaseViewModel,
+    onBack: () -> Unit
+) {
+
+    var showEdit by remember {
+        mutableStateOf(false)
+    }
+
+    var showDelete by remember {
+        mutableStateOf(false)
+    }
+
+    Scaffold(
+        containerColor = LightBackground
+    ) { paddingValues ->
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LightBackground)
+                .padding(paddingValues)
+                .padding(16.dp),
+
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+
+            item {
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    IconButton(
+                        onClick = onBack
+                    ) {
+
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+
+                    Text(
+                        text = "Case Details",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Navy
+                    )
+                }
+            }
+
+            item {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Navy
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+
+                        Text(
+                            text = caseItem.partyName.ifBlank {
+                                "Unnamed Case"
+                            },
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(6.dp)
+                        )
+
+                        Text(
+                            text = caseItem.caseStatus,
+                            color = Color.White.copy(alpha = 0.75f)
+                        )
+                    }
+                }
+            }
+
+            item {
+
+                DetailsSection(
+                    title = "Case Identification",
+                    details = listOf(
+                        "Litigation ID" to caseItem.litigationId,
+                        "New Case Number" to caseItem.newCaseNumber,
+                        "Old Case Number" to caseItem.oldCaseNumber
+                    )
+                )
+            }
+
+            item {
+
+                DetailsSection(
+                    title = "Parties",
+                    details = listOf(
+                        "Complainant / Party" to caseItem.partyName,
+                        "Opposite Party" to caseItem.oppositeParty
+                    )
+                )
+            }
+
+            item {
+
+                DetailsSection(
+                    title = "Case Information",
+                    details = listOf(
+                        "Commission" to caseItem.courtCommission,
+                        "Case Type" to caseItem.caseType,
+                        "State" to caseItem.state,
+                        "District" to caseItem.district,
+                        "Case Status" to caseItem.caseStatus
+                    )
+                )
+            }
+
+            item {
+
+                DetailsSection(
+                    title = "Hearing",
+                    details = listOf(
+                        "Next Hearing Date" to caseItem.nextHearingDate
+                    )
+                )
+            }
+
+            item {
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Button(
+                        modifier = Modifier.weight(1f),
+
+                        onClick = {
+                            showEdit = true
+                        },
+
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Blue
+                        )
+                    ) {
+
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(6.dp)
+                        )
+
+                        Text("Edit Case")
+                    }
+
+                    Button(
+                        modifier = Modifier.weight(1f),
+
+                        onClick = {
+                            showDelete = true
+                        },
+
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Red
+                        )
+                    ) {
+
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(6.dp)
+                        )
+
+                        Text("Delete")
+                    }
+                }
+            }
+        }
+    }
+
+    if (showEdit) {
+
+        CaseFormDialog(
+            title = "Edit Case",
+            initialCase = caseItem,
+
+            onDismiss = {
+                showEdit = false
+            },
+
+            onSave = { form ->
+
+                viewModel.updateCase(
+
+                    caseItem.copy(
+                        litigationId = form.litigationId,
+                        newCaseNumber = form.newCaseNumber,
+                        oldCaseNumber = form.oldCaseNumber,
+                        partyName = form.partyName,
+                        oppositeParty = form.oppositeParty,
+                        courtCommission = form.courtCommission,
+                        caseType = form.caseType,
+                        state = form.state,
+                        district = form.district,
+                        nextHearingDate = form.nextHearingDate,
+                        caseStatus = form.caseStatus
+                    )
+                )
+
+                showEdit = false
+            }
+        )
+    }
+
+    if (showDelete) {
+
+        AlertDialog(
+
+            onDismissRequest = {
+                showDelete = false
+            },
+
+            title = {
+                Text("Delete Case?")
+            },
+
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete this case?"
+                )
+            },
+
+            confirmButton = {
+
+                TextButton(
+
+                    onClick = {
+
+                        viewModel.deleteCase(caseItem.id)
+
+                        showDelete = false
+
+                        onBack()
+                    }
+
+                ) {
+
+                    Text(
+                        "Delete",
+                        color = Color.Red
+                    )
+                }
+            },
+
+            dismissButton = {
+
+                TextButton(
+                    onClick = {
+                        showDelete = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun DetailsSection(
+    title: String,
+    details: List<Pair<String, String>>
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
+            Text(
+                text = title,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Navy
             )
 
-            CaseDetail(
-                "New Case No.",
-                caseItem.newCaseNumber
+            Spacer(
+                modifier = Modifier.height(10.dp)
             )
 
-            CaseDetail(
-                "Old Case No.",
-                caseItem.oldCaseNumber
-            )
+            details.forEach { detail ->
 
-            CaseDetail(
-                "Next Hearing",
-                caseItem.nextHearingDate
-            )
+                if (detail.second.isNotBlank()) {
+
+                    Text(
+                        text = detail.first,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+
+                    Text(
+                        text = detail.second,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(8.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -723,7 +1070,10 @@ fun HearingsScreen(
 
         } else {
 
-            items(hearingCases) { caseItem ->
+            items(
+                items = hearingCases,
+                key = { it.id }
+            ) { caseItem ->
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -777,53 +1127,67 @@ data class CaseFormData(
 )
 
 @Composable
-fun AddCaseDialog(
+fun CaseFormDialog(
+    title: String,
+    initialCase: CaseEntity?,
     onDismiss: () -> Unit,
     onSave: (CaseFormData) -> Unit
 ) {
 
     var litigationId by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.litigationId ?: "")
     }
 
     var newCaseNumber by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.newCaseNumber ?: "")
     }
 
     var oldCaseNumber by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.oldCaseNumber ?: "")
     }
 
     var partyName by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.partyName ?: "")
     }
 
     var oppositeParty by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.oppositeParty ?: "")
     }
 
     var courtCommission by remember {
-        mutableStateOf("District Consumer Commission")
+        mutableStateOf(
+            initialCase?.courtCommission
+                ?: "District Consumer Commission"
+        )
     }
 
     var caseType by remember {
-        mutableStateOf("Consumer Complaint")
+        mutableStateOf(
+            initialCase?.caseType
+                ?: "Consumer Complaint"
+        )
     }
 
     var state by remember {
-        mutableStateOf("Maharashtra")
+        mutableStateOf(
+            initialCase?.state
+                ?: "Maharashtra"
+        )
     }
 
     var district by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.district ?: "")
     }
 
     var hearingDate by remember {
-        mutableStateOf("")
+        mutableStateOf(initialCase?.nextHearingDate ?: "")
     }
 
     var caseStatus by remember {
-        mutableStateOf("Pending")
+        mutableStateOf(
+            initialCase?.caseStatus
+                ?: "Pending"
+        )
     }
 
     var error by remember {
@@ -836,7 +1200,7 @@ fun AddCaseDialog(
 
         title = {
             Text(
-                "Add New Case",
+                title,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -1064,7 +1428,10 @@ fun AddCaseDialog(
                     }
                 }
             ) {
-                Text("Save")
+
+                Text(
+                    if (initialCase == null) "Save" else "Update"
+                )
             }
         },
 
