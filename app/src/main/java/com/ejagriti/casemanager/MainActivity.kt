@@ -8,7 +8,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,8 +35,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,8 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ejagriti.casemanager.data.CaseEntity
@@ -67,7 +62,6 @@ import java.util.Calendar
 
 private val Navy = Color(0xFF14213D)
 private val Blue = Color(0xFF1D4ED8)
-private val Green = Color(0xFF15803D)
 private val Orange = Color(0xFFD97706)
 private val LightBackground = Color(0xFFF6F7FB)
 
@@ -96,6 +90,7 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
     Scaffold(
         containerColor = LightBackground,
+
         floatingActionButton = {
             if (selectedTab == 1) {
                 Button(
@@ -104,12 +99,18 @@ fun EJagritiApp(viewModel: CaseViewModel) {
                         containerColor = Blue
                     )
                 ) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     Text("Add Case")
                 }
             }
         },
+
         bottomBar = {
             NavigationBar {
 
@@ -117,30 +118,46 @@ fun EJagritiApp(viewModel: CaseViewModel) {
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = {
-                        Icon(Icons.Default.Dashboard, null)
+                        Icon(
+                            Icons.Default.Dashboard,
+                            contentDescription = null
+                        )
                     },
-                    label = { Text("Dashboard") }
+                    label = {
+                        Text("Dashboard")
+                    }
                 )
 
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = {
-                        Icon(Icons.Default.WorkOutline, null)
+                        Icon(
+                            Icons.Default.WorkOutline,
+                            contentDescription = null
+                        )
                     },
-                    label = { Text("Cases") }
+                    label = {
+                        Text("Cases")
+                    }
                 )
 
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = {
-                        Icon(Icons.Default.CalendarMonth, null)
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            contentDescription = null
+                        )
                     },
-                    label = { Text("Hearings") }
+                    label = {
+                        Text("Hearings")
+                    }
                 )
             }
         }
+
     ) { paddingValues ->
 
         when (selectedTab) {
@@ -164,8 +181,13 @@ fun EJagritiApp(viewModel: CaseViewModel) {
     }
 
     if (showAddCase) {
+
         AddCaseDialog(
-            onDismiss = { showAddCase = false },
+
+            onDismiss = {
+                showAddCase = false
+            },
+
             onSave = { caseData ->
 
                 viewModel.addCase(
@@ -203,21 +225,26 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(LightBackground)
             .padding(20.dp),
+
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
         item {
-            Text(
-                text = "e-Jagriti Case Manager",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                color = Navy
-            )
 
-            Text(
-                text = "Litigation & Consumer Case Management",
-                color = Color.Gray
-            )
+            Column {
+
+                Text(
+                    text = "e-Jagriti Case Manager",
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Navy
+                )
+
+                Text(
+                    text = "Litigation & Consumer Case Management",
+                    color = Color.Gray
+                )
+            }
         }
 
         item {
@@ -240,7 +267,7 @@ fun DashboardScreen(
                         fontSize = 12.sp
                     )
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = todayCount.toString(),
@@ -291,7 +318,7 @@ fun DashboardScreen(
 
             InfoCard(
                 title = "Litigation ID",
-                description = "Your organisation's unique litigation reference"
+                description = "Organisation's unique litigation reference"
             )
         }
 
@@ -299,7 +326,7 @@ fun DashboardScreen(
 
             InfoCard(
                 title = "New Case Number",
-                description = "Current e-Jagriti case reference"
+                description = "Current e-Jagriti case number"
             )
         }
 
@@ -383,14 +410,20 @@ fun CasesScreen(
     modifier: Modifier = Modifier
 ) {
 
-    var searchText by remember { mutableStateOf("") }
-    var deleteCase by remember { mutableStateOf<CaseEntity?>(null) }
+    var searchText by remember {
+        mutableStateOf("")
+    }
+
+    var deleteCase by remember {
+        mutableStateOf<CaseEntity?>(null)
+    }
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(LightBackground)
             .padding(16.dp),
+
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
@@ -408,17 +441,27 @@ fun CasesScreen(
 
             OutlinedTextField(
                 value = searchText,
+
                 onValueChange = {
                     searchText = it
                     viewModel.searchCases(it)
                 },
+
                 modifier = Modifier.fillMaxWidth(),
+
                 label = {
-                    Text("Search Litigation ID / New / Old Case No.")
+                    Text(
+                        "Search Litigation ID / New / Old Case No."
+                    )
                 },
+
                 leadingIcon = {
-                    Icon(Icons.Default.Search, null)
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null
+                    )
                 },
+
                 singleLine = true
             )
         }
@@ -439,12 +482,12 @@ fun CasesScreen(
 
                         Icon(
                             Icons.Default.Description,
-                            null,
+                            contentDescription = null,
                             modifier = Modifier.size(40.dp),
                             tint = Color.Gray
                         )
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
                             "No cases found",
@@ -469,6 +512,7 @@ fun CasesScreen(
 
                 CaseCard(
                     caseItem = caseItem,
+
                     onDelete = {
                         deleteCase = caseItem
                     }
@@ -480,17 +524,21 @@ fun CasesScreen(
     deleteCase?.let { selectedCase ->
 
         AlertDialog(
+
             onDismissRequest = {
                 deleteCase = null
             },
+
             title = {
                 Text("Delete Case?")
             },
+
             text = {
                 Text(
-                    "Are you sure you want to delete Litigation ID: ${selectedCase.litigationId}?"
+                    "Delete Litigation ID: ${selectedCase.litigationId}?"
                 )
             },
+
             confirmButton = {
 
                 TextButton(
@@ -499,12 +547,14 @@ fun CasesScreen(
                         deleteCase = null
                     }
                 ) {
+
                     Text(
                         "Delete",
                         color = Color.Red
                     )
                 }
             },
+
             dismissButton = {
 
                 TextButton(
@@ -570,18 +620,27 @@ fun CaseCard(
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            CaseDetail("Litigation ID", caseItem.litigationId)
-            CaseDetail("New Case No.", caseItem.newCaseNumber)
-            CaseDetail("Old Case No.", caseItem.oldCaseNumber)
+            CaseDetail(
+                "Litigation ID",
+                caseItem.litigationId
+            )
 
-            if (caseItem.nextHearingDate.isNotBlank()) {
-                CaseDetail(
-                    "Next Hearing",
-                    caseItem.nextHearingDate
-                )
-            }
+            CaseDetail(
+                "New Case No.",
+                caseItem.newCaseNumber
+            )
+
+            CaseDetail(
+                "Old Case No.",
+                caseItem.oldCaseNumber
+            )
+
+            CaseDetail(
+                "Next Hearing",
+                caseItem.nextHearingDate
+            )
         }
     }
 }
@@ -632,6 +691,7 @@ fun HearingsScreen(
             .fillMaxSize()
             .background(LightBackground)
             .padding(16.dp),
+
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
@@ -681,7 +741,9 @@ fun HearingsScreen(
                             color = Blue
                         )
 
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(
+                            modifier = Modifier.height(6.dp)
+                        )
 
                         Text(
                             text = caseItem.partyName,
@@ -714,18 +776,31 @@ data class CaseFormData(
     val caseStatus: String
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddCaseDialog(
     onDismiss: () -> Unit,
     onSave: (CaseFormData) -> Unit
 ) {
 
-    var litigationId by remember { mutableStateOf("") }
-    var newCaseNumber by remember { mutableStateOf("") }
-    var oldCaseNumber by remember { mutableStateOf("") }
-    var partyName by remember { mutableStateOf("") }
-    var oppositeParty by remember { mutableStateOf("") }
+    var litigationId by remember {
+        mutableStateOf("")
+    }
+
+    var newCaseNumber by remember {
+        mutableStateOf("")
+    }
+
+    var oldCaseNumber by remember {
+        mutableStateOf("")
+    }
+
+    var partyName by remember {
+        mutableStateOf("")
+    }
+
+    var oppositeParty by remember {
+        mutableStateOf("")
+    }
 
     var courtCommission by remember {
         mutableStateOf("District Consumer Commission")
@@ -756,13 +831,16 @@ fun AddCaseDialog(
     }
 
     AlertDialog(
+
         onDismissRequest = onDismiss,
+
         title = {
             Text(
                 "Add New Case",
                 fontWeight = FontWeight.Bold
             )
         },
+
         text = {
 
             LazyColumn(
@@ -952,6 +1030,7 @@ fun AddCaseDialog(
                 }
             }
         },
+
         confirmButton = {
 
             Button(
@@ -988,6 +1067,7 @@ fun AddCaseDialog(
                 Text("Save")
             }
         },
+
         dismissButton = {
 
             TextButton(
@@ -1015,6 +1095,13 @@ fun SimpleDropdown(
         modifier = Modifier.fillMaxWidth()
     ) {
 
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
         OutlinedTextField(
             value = selectedValue,
             onValueChange = {},
@@ -1023,14 +1110,13 @@ fun SimpleDropdown(
                 .clickable {
                     expanded = true
                 },
-            label = {
-                Text(label)
-            },
-            readOnly = true
+            readOnly = true,
+            singleLine = true
         )
 
         DropdownMenu(
             expanded = expanded,
+
             onDismissRequest = {
                 expanded = false
             }
@@ -1039,9 +1125,11 @@ fun SimpleDropdown(
             options.forEach { option ->
 
                 DropdownMenuItem(
+
                     text = {
                         Text(option)
                     },
+
                     onClick = {
 
                         onValueSelected(option)
@@ -1061,45 +1149,57 @@ fun DatePickerField(
 ) {
 
     val context = LocalContext.current
-
     val calendar = Calendar.getInstance()
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
+    Column {
 
-                DatePickerDialog(
-                    context,
-                    { _, year, month, day ->
+        Text(
+            text = "Next Hearing Date",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
 
-                        val formattedDate =
-                            "%04d-%02d-%02d".format(
-                                year,
-                                month + 1,
-                                day
-                            )
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
 
-                        onDateSelected(formattedDate)
-                    },
-                    calendar.get(Calendar.YEAR),
-                    calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)
-                ).show()
-            },
-        label = {
-            Text("Next Hearing Date")
-        },
-        readOnly = true,
-        trailingIcon = {
-            Icon(
-                Icons.Default.CalendarMonth,
-                null
-            )
-        }
-    )
+                    DatePickerDialog(
+                        context,
+
+                        { _, year, month, day ->
+
+                            val formattedDate =
+                                "%04d-%02d-%02d".format(
+                                    year,
+                                    month + 1,
+                                    day
+                                )
+
+                            onDateSelected(formattedDate)
+                        },
+
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+
+                    ).show()
+                },
+
+            readOnly = true,
+
+            trailingIcon = {
+
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    contentDescription = null
+                )
+            }
+        )
+    }
 }
 
 fun getTodayDate(): String {
