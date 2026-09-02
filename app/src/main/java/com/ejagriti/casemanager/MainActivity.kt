@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,12 +78,13 @@ fun EJagritiCaseManagerApp() {
             NavigationBar(
                 containerColor = Color.White
             ) {
+
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = {
                         Icon(
-                            Icons.Default.Dashboard,
+                            imageVector = Icons.Default.Dashboard,
                             contentDescription = "Dashboard"
                         )
                     },
@@ -96,7 +96,7 @@ fun EJagritiCaseManagerApp() {
                     onClick = { selectedTab = 1 },
                     icon = {
                         Icon(
-                            Icons.Default.WorkOutline,
+                            imageVector = Icons.Default.WorkOutline,
                             contentDescription = "Cases"
                         )
                     },
@@ -108,7 +108,7 @@ fun EJagritiCaseManagerApp() {
                     onClick = { selectedTab = 2 },
                     icon = {
                         Icon(
-                            Icons.Default.CalendarMonth,
+                            imageVector = Icons.Default.CalendarMonth,
                             contentDescription = "Hearings"
                         )
                     },
@@ -120,7 +120,7 @@ fun EJagritiCaseManagerApp() {
                     onClick = { selectedTab = 3 },
                     icon = {
                         Icon(
-                            Icons.Default.MoreHoriz,
+                            imageVector = Icons.Default.MoreHoriz,
                             contentDescription = "More"
                         )
                     },
@@ -131,7 +131,6 @@ fun EJagritiCaseManagerApp() {
     ) { paddingValues ->
 
         when (selectedTab) {
-
             0 -> DashboardScreen(
                 modifier = Modifier.padding(paddingValues)
             )
@@ -152,7 +151,9 @@ fun EJagritiCaseManagerApp() {
 }
 
 @Composable
-fun DashboardScreen(modifier: Modifier = Modifier) {
+fun DashboardScreen(
+    modifier: Modifier = Modifier
+) {
 
     LazyColumn(
         modifier = modifier
@@ -163,7 +164,6 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     ) {
 
         item {
-
             Column {
 
                 Text(
@@ -229,12 +229,12 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-DashboardStat(
-    modifier = Modifier.fillMaxWidth(),
-    value = "0",
-    label = "Hearings scheduled",
-    color = Orange
-)
+                DashboardStat(
+                    modifier = Modifier.weight(1f),
+                    value = "0",
+                    label = "Active Cases",
+                    color = Blue
+                )
 
                 DashboardStat(
                     modifier = Modifier.weight(1f),
@@ -256,7 +256,6 @@ DashboardStat(
         }
 
         item {
-
             QuickActionCard(
                 icon = Icons.Default.Add,
                 title = "Add New Case",
@@ -265,7 +264,6 @@ DashboardStat(
         }
 
         item {
-
             QuickActionCard(
                 icon = Icons.Default.Search,
                 title = "Search Case",
@@ -274,7 +272,6 @@ DashboardStat(
         }
 
         item {
-
             QuickActionCard(
                 icon = Icons.Default.Description,
                 title = "Import Cases",
@@ -377,7 +374,7 @@ fun DashboardStat(
 
 @Composable
 fun QuickActionCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     title: String,
     subtitle: String
 ) {
@@ -437,7 +434,9 @@ fun QuickActionCard(
 }
 
 @Composable
-fun CasesScreen(modifier: Modifier = Modifier) {
+fun CasesScreen(
+    modifier: Modifier = Modifier
+) {
 
     Column(
         modifier = modifier
@@ -483,16 +482,30 @@ fun CasesScreen(modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                CaseIdentifier("Litigation ID", "Organisation unique identifier")
-                CaseIdentifier("New Case Number", "Current e-Jagriti case number")
-                CaseIdentifier("Old Case Number", "Previous / legacy case reference")
+                CaseIdentifier(
+                    title = "Litigation ID",
+                    subtitle = "Organisation unique identifier"
+                )
+
+                CaseIdentifier(
+                    title = "New Case Number",
+                    subtitle = "Current e-Jagriti case number"
+                )
+
+                CaseIdentifier(
+                    title = "Old Case Number",
+                    subtitle = "Previous / legacy case reference"
+                )
             }
         }
     }
 }
 
 @Composable
-fun CaseIdentifier(title: String, subtitle: String) {
+fun CaseIdentifier(
+    title: String,
+    subtitle: String
+) {
 
     Column(
         modifier = Modifier.padding(vertical = 8.dp)
@@ -517,7 +530,9 @@ fun CaseIdentifier(title: String, subtitle: String) {
 }
 
 @Composable
-fun HearingsScreen(modifier: Modifier = Modifier) {
+fun HearingsScreen(
+    modifier: Modifier = Modifier
+) {
 
     Column(
         modifier = modifier
@@ -545,13 +560,16 @@ fun HearingsScreen(modifier: Modifier = Modifier) {
         DashboardStat(
             modifier = Modifier.fillMaxWidth(),
             value = "0",
-            label = "Hearings scheduled"
+            label = "Hearings scheduled",
+            color = Orange
         )
     }
 }
 
 @Composable
-fun MoreScreen(modifier: Modifier = Modifier) {
+fun MoreScreen(
+    modifier: Modifier = Modifier
+) {
 
     Column(
         modifier = modifier
@@ -578,7 +596,9 @@ fun MoreScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MoreItem(title: String) {
+fun MoreItem(
+    title: String
+) {
 
     Card(
         modifier = Modifier
