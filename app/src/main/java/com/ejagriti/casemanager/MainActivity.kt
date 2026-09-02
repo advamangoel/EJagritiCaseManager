@@ -229,7 +229,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-  DashboardStat(
+DashboardStat(
     modifier = Modifier.fillMaxWidth(),
     value = "0",
     label = "Hearings scheduled",
