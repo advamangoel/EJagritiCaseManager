@@ -91,6 +91,7 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddCase by remember { mutableStateOf(false) }
+    var showImportCapture by remember { mutableStateOf(false) }
     var selectedCase by remember { mutableStateOf<CaseEntity?>(null) }
 
     val cases by viewModel.cases.collectAsState()
@@ -101,6 +102,17 @@ fun EJagritiApp(viewModel: CaseViewModel) {
             viewModel = viewModel,
             onBack = {
                 selectedCase = null
+            }
+        )
+        return
+    }
+
+    if (showImportCapture) {
+        ImportCaptureScreen(
+            viewModel = viewModel,
+            existingCases = cases,
+            onBack = {
+                showImportCapture = false
             }
         )
         return
@@ -184,6 +196,9 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
             0 -> DashboardScreen(
                 cases = cases,
+                onImportCapture = {
+                    showImportCapture = true
+                },
                 modifier = Modifier.padding(paddingValues)
             )
 
@@ -241,6 +256,7 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 @Composable
 fun DashboardScreen(
     cases: List<CaseEntity>,
+    onImportCapture: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -455,6 +471,70 @@ fun DashboardScreen(
                 title = "Old Case Number",
                 description = "Legacy case reference for searching and mapping"
             )
+        }
+
+        item {
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onImportCapture()
+                    },
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Blue
+                )
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+
+                        Spacer(
+                            modifier = Modifier.width(10.dp)
+                        )
+
+                        Text(
+                            text = "Import & Capture",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(
+                        modifier = Modifier.height(6.dp)
+                    )
+
+                    Text(
+                        text = "Import Excel files or scan PDF case documents using OCR.",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
+
+                    Text(
+                        text = "Excel  •  PDF / OCR  •  Review  •  Save",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
         }
     }
 }
