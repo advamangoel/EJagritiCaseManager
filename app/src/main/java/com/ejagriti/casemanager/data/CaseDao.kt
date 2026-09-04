@@ -13,6 +13,9 @@ interface CaseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCase(caseEntity: CaseEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCases(caseEntities: List<CaseEntity>)
+
     @Update
     suspend fun updateCase(caseEntity: CaseEntity)
 

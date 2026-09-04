@@ -35,11 +35,9 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun observeAllCases() {
-
         casesJob?.cancel()
 
         casesJob = viewModelScope.launch {
-
             caseDao.getAllCases().collect { caseList ->
                 _cases.value = caseList
             }
@@ -124,6 +122,21 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             caseDao.deleteCase(id)
+        }
+    }
+
+    fun importCases(
+        importedCases: List<CaseEntity>,
+        onFinished: (Int) -> Unit
+    ) {
+
+        viewModelScope.launch {
+
+            if (importedCases.isNotEmpty()) {
+                caseDao.insertCases(importedCases)
+            }
+
+            onFinished(importedCases.size)
         }
     }
 }
