@@ -38,6 +38,21 @@ interface CaseDao {
     @Query("SELECT * FROM cases WHERE id = :id LIMIT 1")
     suspend fun getCaseById(id: Long): CaseEntity?
 
+    @Query(
+        """
+        SELECT * FROM cases
+        WHERE (:litigationId != '' AND lower(trim(litigationId)) = lower(trim(:litigationId)))
+           OR (:newCaseNumber != '' AND lower(trim(newCaseNumber)) = lower(trim(:newCaseNumber)))
+           OR (:oldCaseNumber != '' AND lower(trim(oldCaseNumber)) = lower(trim(:oldCaseNumber)))
+        ORDER BY id ASC
+        """
+    )
+    suspend fun findPotentialDuplicates(
+        litigationId: String,
+        newCaseNumber: String,
+        oldCaseNumber: String
+    ): List<CaseEntity>
+
     @Query("DELETE FROM cases WHERE id = :id")
     suspend fun deleteCase(id: Long)
 
