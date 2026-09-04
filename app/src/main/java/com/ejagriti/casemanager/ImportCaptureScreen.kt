@@ -80,10 +80,6 @@ fun ImportCaptureScreen(
         mutableStateOf("")
     }
 
-    var showImportHelp by remember {
-        mutableStateOf(false)
-    }
-
     val pdfLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.OpenDocument()
@@ -271,14 +267,6 @@ fun ImportCaptureScreen(
                         Text("Import Excel")
                     }
 
-                    TextButton(
-                        onClick = {
-                            showImportHelp = true
-                        }
-                    ) {
-                        Text("How duplicate protection works")
-                    }
-
                     Button(
                         modifier =
                             Modifier.fillMaxWidth(),
@@ -371,7 +359,7 @@ fun ImportCaptureScreen(
                         )
 
                         Text(
-                            "Existing matches: ${duplicates.size}",
+                            "Possible duplicates: ${duplicates.size}",
                             color =
                                 if (
                                     duplicates.isEmpty()
@@ -501,7 +489,7 @@ fun ImportCaptureScreen(
 
             text = {
                 Text(
-                    "The app will add new cases and safely update matching existing cases using Litigation ID, New Case Number or Old Case Number. Existing Litigation IDs are preserved when OCR does not capture them."
+                    "Save ${importedCases.size} extracted cases to the database? Possible duplicates are included only after your confirmation."
                 )
             },
 
@@ -512,13 +500,10 @@ fun ImportCaptureScreen(
 
                         viewModel.importCases(
                             importedCases
-                        ) { result ->
+                        ) { count ->
 
                             resultMessage =
-                                "Import complete: ${result.added} added, " +
-                                "${result.updated} updated, " +
-                                "${result.skipped} skipped, " +
-                                "${result.conflicts} conflicts."
+                                "$count cases imported successfully."
 
                             importedCases =
                                 emptyList()
@@ -624,32 +609,3 @@ private fun ImportCaseCard(
         }
     }
 }
-
-    if (showImportHelp) {
-        AlertDialog(
-            onDismissRequest = {
-                showImportHelp = false
-            },
-            title = {
-                Text("Duplicate Protection")
-            },
-            text = {
-                Text(
-                    "The app checks Litigation ID, New Case Number and Old Case Number. " +
-                    "A single matching existing case is updated instead of creating a duplicate. " +
-                    "If one imported row matches more than one existing case, it is treated as a conflict and skipped for manual review. " +
-                    "A known Litigation ID is never erased just because OCR missed it."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showImportHelp = false
-                    }
-                ) {
-                    Text("Understood")
-                }
-            }
-        )
-    }
-
