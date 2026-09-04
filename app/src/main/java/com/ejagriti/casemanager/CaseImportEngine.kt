@@ -2,7 +2,6 @@ package com.ejagriti.casemanager.importer
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -11,14 +10,13 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
-import java.io.File
-import java.io.FileInputStream
-import java.io.InputStream
 import java.util.zip.ZipInputStream
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 data class ImportResult(
     val cases: List<CaseEntity>,
@@ -118,7 +116,6 @@ object CaseImportEngine {
                 newCaseNumber.isBlank() &&
                 oldCaseNumber.isBlank()
             ) {
-
                 warnings.add(
                     "Row ${index + 2}: no Litigation ID or case number."
                 )
@@ -127,7 +124,6 @@ object CaseImportEngine {
             }
 
             if (litigationId.isBlank()) {
-
                 warnings.add(
                     "Row ${index + 2}: Litigation ID is blank."
                 )
@@ -175,7 +171,6 @@ object CaseImportEngine {
             )
 
         if (descriptor == null) {
-
             return@withContext ImportResult(
                 emptyList(),
                 listOf("Unable to open PDF."),
@@ -235,13 +230,11 @@ object CaseImportEngine {
                         bitmap.recycle()
 
                     } finally {
-
                         page.close()
                     }
                 }
 
             } finally {
-
                 renderer.close()
             }
         }
@@ -250,7 +243,6 @@ object CaseImportEngine {
             extractedText.toString()
 
         if (text.isBlank()) {
-
             warnings.add(
                 "OCR did not find readable text in the PDF."
             )
@@ -268,7 +260,7 @@ object CaseImportEngine {
 
     private suspend fun recognizeBitmap(
         bitmap: Bitmap
-    ): String {
+    ): String = suspendCancellableCoroutine { continuation ->
 
         val image =
             InputImage.fromBitmap(
@@ -281,15 +273,26 @@ object CaseImportEngine {
                 TextRecognizerOptions.DEFAULT_OPTIONS
             )
 
-        return try {
+        recognizer
+            .process(image)
+            .addOnSuccessListener { result ->
 
-            recognizer
-                .process(image)
-                .await()
-                .text
+                if (continuation.isActive) {
+                    continuation.resume(result.text)
+                }
 
-        } finally {
+                recognizer.close()
+            }
+            .addOnFailureListener { exception ->
 
+                if (continuation.isActive) {
+                    continuation.resumeWithException(exception)
+                }
+
+                recognizer.close()
+            }
+
+        continuation.invokeOnCancellation {
             recognizer.close()
         }
     }
@@ -359,9 +362,7 @@ object CaseImportEngine {
                 val hearingDate =
                     hearingMatch
                         ?.let {
-                            normalizeDate(
-                                it.value
-                            )
+                            normalizeDate(it.value)
                         }
                         ?: ""
 
@@ -393,7 +394,6 @@ object CaseImportEngine {
         }
 
         if (results.isEmpty()) {
-
             warnings.add(
                 "No recognizable case numbers were found. " +
                         "OCR text may need a different case-number pattern."
@@ -713,7 +713,6 @@ object CaseImportEngine {
                 }
 
                 XmlPullParser.TEXT -> {
-
                     currentValue +=
                         parser.text
                 }
@@ -743,9 +742,7 @@ object CaseImportEngine {
                                 ) {
 
                                     value =
-                                        sharedStrings[
-                                            index
-                                        ]
+                                        sharedStrings[index]
                                 }
                             }
 
@@ -755,7 +752,6 @@ object CaseImportEngine {
                         }
 
                         "row" -> {
-
                             rows.add(
                                 currentRow
                             )
@@ -781,9 +777,7 @@ object CaseImportEngine {
             context.contentResolver
                 .query(
                     uri,
-                    arrayOf(
-                        "_display_name"
-                    ),
+                    arrayOf("_display_name"),
                     null,
                     null,
                     null
@@ -791,18 +785,14 @@ object CaseImportEngine {
                 ?.use { cursor ->
 
                     if (cursor.moveToFirst()) {
-
                         cursor.getString(0)
-
                     } else {
                         null
                     }
                 }
 
-        } catch (
-            _: Exception
-        ) {
-            File(uri.path ?: "").name
+        } catch (_: Exception) {
+            ""
         }
     }
 }
