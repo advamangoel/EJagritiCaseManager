@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Delete
@@ -49,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +68,7 @@ import java.util.Calendar
 private val Navy = Color(0xFF14213D)
 private val Blue = Color(0xFF1D4ED8)
 private val Orange = Color(0xFFD97706)
+private val Green = Color(0xFF15803D)
 private val LightBackground = Color(0xFFF6F7FB)
 
 class MainActivity : ComponentActivity() {
@@ -85,14 +89,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun EJagritiApp(viewModel: CaseViewModel) {
 
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     var showAddCase by remember { mutableStateOf(false) }
     var selectedCase by remember { mutableStateOf<CaseEntity?>(null) }
 
     val cases by viewModel.cases.collectAsState()
 
     if (selectedCase != null) {
-
         CaseDetailsScreen(
             caseItem = selectedCase!!,
             viewModel = viewModel,
@@ -100,7 +103,6 @@ fun EJagritiApp(viewModel: CaseViewModel) {
                 selectedCase = null
             }
         )
-
         return
     }
 
@@ -108,9 +110,7 @@ fun EJagritiApp(viewModel: CaseViewModel) {
         containerColor = LightBackground,
 
         floatingActionButton = {
-
             if (selectedTab == 1) {
-
                 Button(
                     onClick = {
                         showAddCase = true
@@ -119,7 +119,6 @@ fun EJagritiApp(viewModel: CaseViewModel) {
                         containerColor = Blue
                     )
                 ) {
-
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null
@@ -133,7 +132,6 @@ fun EJagritiApp(viewModel: CaseViewModel) {
         },
 
         bottomBar = {
-
             NavigationBar {
 
                 NavigationBarItem(
@@ -200,6 +198,9 @@ fun EJagritiApp(viewModel: CaseViewModel) {
 
             2 -> HearingsScreen(
                 cases = cases,
+                onCaseClick = {
+                    selectedCase = it
+                },
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -210,9 +211,11 @@ fun EJagritiApp(viewModel: CaseViewModel) {
         CaseFormDialog(
             title = "Add New Case",
             initialCase = null,
+
             onDismiss = {
                 showAddCase = false
             },
+
             onSave = { form ->
 
                 viewModel.addCase(
@@ -241,8 +244,24 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
 
-    val todayCount = cases.count {
-        it.nextHearingDate == getTodayDate()
+    val today = getTodayDate()
+    val tomorrow = getTomorrowDate()
+    val currentMonth = getCurrentMonthPrefix()
+
+    val todayCases = cases.filter {
+        it.nextHearingDate == today
+    }
+
+    val tomorrowCases = cases.filter {
+        it.nextHearingDate == tomorrow
+    }
+
+    val monthCases = cases.filter {
+        it.nextHearingDate.startsWith(currentMonth)
+    }
+
+    val pendingCases = cases.count {
+        it.caseStatus == "Pending"
     }
 
     LazyColumn(
@@ -264,6 +283,8 @@ fun DashboardScreen(
                     fontWeight = FontWeight.Bold,
                     color = Navy
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "Litigation & Consumer Case Management",
@@ -289,16 +310,23 @@ fun DashboardScreen(
                     Text(
                         text = "TODAY'S HEARINGS",
                         color = Color.White.copy(alpha = 0.75f),
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = todayCount.toString(),
+                        text = todayCases.size.toString(),
                         fontSize = 42.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
+                    )
+
+                    Text(
+                        text = formatDisplayDate(today),
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -308,24 +336,93 @@ fun DashboardScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    value = tomorrowCases.size.toString(),
+                    label = "Tomorrow",
+                    color = Blue
+                )
+
+                StatCard(
+                    modifier = Modifier.weight(1f),
+                    value = monthCases.size.toString(),
+                    label = "This Month",
+                    color = Orange
+                )
+            }
+        }
+
+        item {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
                 StatCard(
                     modifier = Modifier.weight(1f),
                     value = cases.size.toString(),
                     label = "Total Cases",
-                    color = Blue
+                    color = Navy
                 )
 
                 StatCard(
                     modifier = Modifier.weight(1f),
-                    value = cases.count {
-                        it.caseStatus == "Pending"
-                    }.toString(),
+                    value = pendingCases.toString(),
                     label = "Pending",
-                    color = Orange
+                    color = Green
                 )
+            }
+        }
+
+        item {
+
+            Text(
+                text = "Today's Hearing List",
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                color = Navy
+            )
+        }
+
+        if (todayCases.isEmpty()) {
+
+            item {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+
+                        Text(
+                            text = "No hearings scheduled for today.",
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        Text(
+                            text = "Your hearing schedule is clear today.",
+                            color = Color.Gray,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
+        } else {
+
+            items(
+                items = todayCases,
+                key = { it.id }
+            ) { caseItem ->
+
+                DashboardHearingCard(caseItem)
             }
         }
 
@@ -357,6 +454,53 @@ fun DashboardScreen(
             InfoCard(
                 title = "Old Case Number",
                 description = "Legacy case reference for searching and mapping"
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardHearingCard(
+    caseItem: CaseEntity
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
+            Text(
+                text = caseItem.partyName.ifBlank {
+                    "Unnamed Case"
+                },
+                fontWeight = FontWeight.Bold,
+                color = Navy
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            CaseDetail(
+                "Litigation ID",
+                caseItem.litigationId
+            )
+
+            CaseDetail(
+                "Old Case No.",
+                caseItem.oldCaseNumber
+            )
+
+            CaseDetail(
+                "New Case No.",
+                caseItem.newCaseNumber
+            )
+
+            CaseDetail(
+                "Commission",
+                caseItem.courtCommission
             )
         }
     }
@@ -867,7 +1011,6 @@ fun CaseDetailsScreen(
             onSave = { form ->
 
                 viewModel.updateCase(
-
                     caseItem.copy(
                         litigationId = form.litigationId,
                         newCaseNumber = form.newCaseNumber,
@@ -909,7 +1052,6 @@ fun CaseDetailsScreen(
             confirmButton = {
 
                 TextButton(
-
                     onClick = {
 
                         viewModel.deleteCase(caseItem.id)
@@ -918,7 +1060,6 @@ fun CaseDetailsScreen(
 
                         onBack()
                     }
-
                 ) {
 
                     Text(
@@ -1022,15 +1163,44 @@ fun CaseDetail(
 @Composable
 fun HearingsScreen(
     cases: List<CaseEntity>,
+    onCaseClick: (CaseEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
-    val hearingCases = cases
+    val today = getTodayDate()
+
+    var displayedYear by remember {
+        mutableIntStateOf(getCurrentYear())
+    }
+
+    var displayedMonth by remember {
+        mutableIntStateOf(getCurrentMonth())
+    }
+
+    var selectedDate by remember {
+        mutableStateOf(today)
+    }
+
+    val monthPrefix =
+        "%04d-%02d".format(
+            displayedYear,
+            displayedMonth + 1
+        )
+
+    val monthCases = cases
         .filter {
-            it.nextHearingDate.isNotBlank()
+            it.nextHearingDate.startsWith(monthPrefix)
         }
         .sortedBy {
             it.nextHearingDate
+        }
+
+    val selectedCases = cases
+        .filter {
+            it.nextHearingDate == selectedDate
+        }
+        .sortedBy {
+            it.partyName
         }
 
     LazyColumn(
@@ -1052,28 +1222,107 @@ fun HearingsScreen(
             )
 
             Text(
-                text = "Upcoming hearing schedule",
+                text = "Monthly hearing schedule",
                 color = Color.Gray
             )
         }
 
-        if (hearingCases.isEmpty()) {
+        item {
+
+            MonthHeader(
+                year = displayedYear,
+                month = displayedMonth,
+
+                onPrevious = {
+
+                    if (displayedMonth == 0) {
+                        displayedMonth = 11
+                        displayedYear--
+                    } else {
+                        displayedMonth--
+                    }
+
+                    selectedDate =
+                        "%04d-%02d-%02d".format(
+                            displayedYear,
+                            displayedMonth + 1,
+                            1
+                        )
+                },
+
+                onNext = {
+
+                    if (displayedMonth == 11) {
+                        displayedMonth = 0
+                        displayedYear++
+                    } else {
+                        displayedMonth++
+                    }
+
+                    selectedDate =
+                        "%04d-%02d-%02d".format(
+                            displayedYear,
+                            displayedMonth + 1,
+                            1
+                        )
+                }
+            )
+        }
+
+        item {
+
+            CalendarView(
+                year = displayedYear,
+                month = displayedMonth,
+                hearingDates = monthCases
+                    .map { it.nextHearingDate }
+                    .toSet(),
+                selectedDate = selectedDate,
+
+                onDateSelected = {
+                    selectedDate = it
+                }
+            )
+        }
+
+        item {
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+
+                    Text(
+                        text = "Selected Date",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = formatDisplayDate(selectedDate),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Navy
+                    )
+
+                    Text(
+                        text = "${selectedCases.size} hearing(s)",
+                        fontSize = 13.sp,
+                        color = Blue
+                    )
+                }
+            }
+        }
+
+        if (selectedCases.isEmpty()) {
 
             item {
-
-                Text(
-                    text = "No hearings scheduled yet",
-                    modifier = Modifier.padding(top = 30.dp),
-                    color = Color.Gray
-                )
-            }
-
-        } else {
-
-            items(
-                items = hearingCases,
-                key = { it.id }
-            ) { caseItem ->
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1081,33 +1330,412 @@ fun HearingsScreen(
                 ) {
 
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(20.dp)
                     ) {
 
                         Text(
-                            text = caseItem.nextHearingDate,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Blue
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(6.dp)
+                            text = "No hearings on this date.",
+                            fontWeight = FontWeight.SemiBold
                         )
 
                         Text(
-                            text = caseItem.partyName,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = "Litigation ID: ${caseItem.litigationId}",
+                            text = "Select another date from the calendar.",
                             color = Color.Gray,
                             fontSize = 13.sp
                         )
                     }
                 }
             }
+
+        } else {
+
+            items(
+                items = selectedCases,
+                key = { it.id }
+            ) { caseItem ->
+
+                HearingCaseCard(
+                    caseItem = caseItem,
+                    onClick = {
+                        onCaseClick(caseItem)
+                    }
+                )
+            }
+        }
+
+        item {
+
+            Text(
+                text = "All Hearings in ${getMonthName(displayedMonth)}",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Navy
+            )
+        }
+
+        if (monthCases.isEmpty()) {
+
+            item {
+
+                Text(
+                    text = "No hearings scheduled this month.",
+                    color = Color.Gray
+                )
+            }
+
+        } else {
+
+            items(
+                items = monthCases,
+                key = { "month-${it.id}" }
+            ) { caseItem ->
+
+                HearingCaseCard(
+                    caseItem = caseItem,
+                    onClick = {
+                        onCaseClick(caseItem)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MonthHeader(
+    year: Int,
+    month: Int,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+
+            IconButton(
+                onClick = onPrevious
+            ) {
+
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Previous month"
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = getMonthName(month),
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Navy
+                )
+
+                Text(
+                    text = year.toString(),
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+            }
+
+            IconButton(
+                onClick = onNext
+            ) {
+
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = "Next month"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CalendarView(
+    year: Int,
+    month: Int,
+    hearingDates: Set<String>,
+    selectedDate: String,
+    onDateSelected: (String) -> Unit
+) {
+
+    val calendar = Calendar.getInstance()
+
+    calendar.set(
+        year,
+        month,
+        1
+    )
+
+    val firstDayOfWeek =
+        calendar.get(Calendar.DAY_OF_WEEK)
+
+    val daysInMonth =
+        calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+    val leadingEmptyDays =
+        firstDayOfWeek - Calendar.SUNDAY
+
+    val totalCells =
+        leadingEmptyDays + daysInMonth
+
+    val rows =
+        (totalCells + 6) / 7
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.padding(10.dp)
+        ) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                listOf(
+                    "S",
+                    "M",
+                    "T",
+                    "W",
+                    "T",
+                    "F",
+                    "S"
+                ).forEach { day ->
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        Text(
+                            text = day,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(6.dp)
+            )
+
+            repeat(rows) { row ->
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+
+                    repeat(7) { column ->
+
+                        val cellIndex =
+                            row * 7 + column
+
+                        val day =
+                            cellIndex - leadingEmptyDays + 1
+
+                        if (
+                            day in 1..daysInMonth
+                        ) {
+
+                            val date =
+                                "%04d-%02d-%02d".format(
+                                    year,
+                                    month + 1,
+                                    day
+                                )
+
+                            val hasHearing =
+                                hearingDates.contains(date)
+
+                            val isSelected =
+                                selectedDate == date
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(2.dp)
+                                    .background(
+                                        color =
+                                            if (isSelected) {
+                                                Blue
+                                            } else if (hasHearing) {
+                                                Orange.copy(alpha = 0.15f)
+                                            } else {
+                                                Color.Transparent
+                                            },
+                                        shape =
+                                            RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable {
+                                        onDateSelected(date)
+                                    }
+                                    .padding(vertical = 10.dp),
+
+                                contentAlignment =
+                                    Alignment.Center
+                            ) {
+
+                                Column(
+                                    horizontalAlignment =
+                                        Alignment.CenterHorizontally
+                                ) {
+
+                                    Text(
+                                        text = day.toString(),
+                                        fontSize = 14.sp,
+                                        fontWeight =
+                                            if (
+                                                hasHearing ||
+                                                isSelected
+                                            ) {
+                                                FontWeight.Bold
+                                            } else {
+                                                FontWeight.Normal
+                                            },
+                                        color =
+                                            if (isSelected) {
+                                                Color.White
+                                            } else {
+                                                Navy
+                                            }
+                                    )
+
+                                    if (hasHearing) {
+
+                                        Spacer(
+                                            modifier =
+                                                Modifier.height(2.dp)
+                                        )
+
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(5.dp)
+                                                    .background(
+                                                        if (isSelected) {
+                                                            Color.White
+                                                        } else {
+                                                            Orange
+                                                        },
+                                                        RoundedCornerShape(
+                                                            50
+                                                        )
+                                                    )
+                                        )
+                                    }
+                                }
+                            }
+
+                        } else {
+
+                            Spacer(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(2.dp)
+                                    .height(45.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HearingCaseCard(
+    caseItem: CaseEntity,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                onClick()
+            },
+
+        shape = RoundedCornerShape(16.dp)
+    ) {
+
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text = caseItem.partyName.ifBlank {
+                            "Unnamed Case"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        color = Navy
+                    )
+
+                    Text(
+                        text = caseItem.nextHearingDate,
+                        fontSize = 13.sp,
+                        color = Blue
+                    )
+                }
+
+                Text(
+                    text = caseItem.caseStatus,
+                    fontSize = 12.sp,
+                    color = Green,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            CaseDetail(
+                "Litigation ID",
+                caseItem.litigationId
+            )
+
+            CaseDetail(
+                "Old Case No.",
+                caseItem.oldCaseNumber
+            )
+
+            CaseDetail(
+                "New Case No.",
+                caseItem.newCaseNumber
+            )
+
+            CaseDetail(
+                "Commission",
+                caseItem.courtCommission
+            )
         }
     }
 }
@@ -1578,4 +2206,82 @@ fun getTodayDate(): String {
         calendar.get(Calendar.MONTH) + 1,
         calendar.get(Calendar.DAY_OF_MONTH)
     )
+}
+
+fun getTomorrowDate(): String {
+
+    val calendar = Calendar.getInstance()
+
+    calendar.add(
+        Calendar.DAY_OF_MONTH,
+        1
+    )
+
+    return "%04d-%02d-%02d".format(
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH) + 1,
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+}
+
+fun getCurrentMonthPrefix(): String {
+
+    val calendar = Calendar.getInstance()
+
+    return "%04d-%02d".format(
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH) + 1
+    )
+}
+
+fun getCurrentYear(): Int {
+
+    return Calendar.getInstance()
+        .get(Calendar.YEAR)
+}
+
+fun getCurrentMonth(): Int {
+
+    return Calendar.getInstance()
+        .get(Calendar.MONTH)
+}
+
+fun getMonthName(month: Int): String {
+
+    return listOf(
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    )[month]
+}
+
+fun formatDisplayDate(date: String): String {
+
+    if (date.length != 10) {
+        return date
+    }
+
+    val parts = date.split("-")
+
+    if (parts.size != 3) {
+        return date
+    }
+
+    val month = parts[1].toIntOrNull() ?: return date
+    val day = parts[2].toIntOrNull() ?: return date
+
+    if (month !in 1..12) {
+        return date
+    }
+
+    return "${day} ${getMonthName(month - 1)} ${parts[0]}"
 }
