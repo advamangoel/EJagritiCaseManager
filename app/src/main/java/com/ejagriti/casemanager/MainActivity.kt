@@ -1,9 +1,13 @@
 package com.ejagriti.casemanager
 
 import android.app.DatePickerDialog
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +41,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -63,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ejagriti.casemanager.data.CaseEntity
+import com.ejagriti.casemanager.exporter.CaseExcelExporter
 import java.util.Calendar
 
 private val Navy = Color(0xFF14213D)
@@ -665,6 +672,55 @@ fun CasesScreen(
         mutableStateOf<CaseEntity?>(null)
     }
 
+    var showExport by remember {
+        mutableStateOf(false)
+    }
+
+    var pendingExportBytes by remember {
+        mutableStateOf<ByteArray?>(null)
+    }
+
+    val context = LocalContext.current
+
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        ) { uri: Uri? ->
+            val bytes = pendingExportBytes
+
+            if (uri != null && bytes != null) {
+                try {
+                    val output = context.contentResolver.openOutputStream(uri)
+
+                    if (output != null) {
+                        output.use { it.write(bytes) }
+
+                        Toast.makeText(
+                            context,
+                            "Excel file exported successfully.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Could not create the Excel file.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } catch (exception: Exception) {
+                    Toast.makeText(
+                        context,
+                        "Export failed: ${exception.message ?: "Unknown error"}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+
+            pendingExportBytes = null
+        }
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -709,6 +765,31 @@ fun CasesScreen(
 
                 singleLine = true
             )
+        }
+
+        item {
+
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    showExport = true
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Blue
+                )
+            ) {
+
+                Icon(
+                    Icons.Default.Description,
+                    contentDescription = null
+                )
+
+                Spacer(
+                    modifier = Modifier.width(6.dp)
+                )
+
+                Text("Export to Excel")
+            }
         }
 
         if (cases.isEmpty()) {
@@ -770,6 +851,41 @@ fun CasesScreen(
         }
     }
 
+    if (showExport) {
+
+        ExportColumnDialog(
+            onDismiss = {
+                showExport = false
+            },
+            onExport = { selectedColumns ->
+
+                try {
+                    pendingExportBytes =
+                        CaseExcelExporter
+                            .createWorkbook(
+                                cases = cases,
+                                selectedColumns = selectedColumns
+                            )
+
+                    showExport = false
+
+                    exportLauncher.launch(
+                        "eJagriti_Cases_${getTodayDate()}.xlsx"
+                    )
+                } catch (exception: Exception) {
+
+                    pendingExportBytes = null
+
+                    Toast.makeText(
+                        context,
+                        "Export failed: ${exception.message ?: "Unknown error"}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        )
+    }
+
     deleteCase?.let { selectedCase ->
 
         AlertDialog(
@@ -814,6 +930,144 @@ fun CasesScreen(
             }
         )
     }
+}
+
+data class ExportColumn(
+    val key: String,
+    val label: String
+)
+
+private val exportColumns = listOf(
+    ExportColumn("litigationId", "Litigation ID"),
+    ExportColumn("newCaseNumber", "New Case Number"),
+    ExportColumn("oldCaseNumber", "Old Case Number"),
+    ExportColumn("partyName", "Complainant / Party"),
+    ExportColumn("oppositeParty", "Opposite Party"),
+    ExportColumn("courtCommission", "Commission"),
+    ExportColumn("caseType", "Case Type"),
+    ExportColumn("state", "State"),
+    ExportColumn("district", "District"),
+    ExportColumn("nextHearingDate", "Next Hearing Date"),
+    ExportColumn("caseStatus", "Case Status")
+)
+
+@Composable
+fun ExportColumnDialog(
+    onDismiss: () -> Unit,
+    onExport: (List<String>) -> Unit
+) {
+
+    var selectedKeys by remember {
+        mutableStateOf(exportColumns.map { it.key }.toSet())
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+
+        title = {
+            Text(
+                "Export Cases to Excel",
+                fontWeight = FontWeight.Bold
+            )
+        },
+
+        text = {
+
+            Column {
+
+                Text(
+                    "Select the columns you want in the Excel file.",
+                    color = Color.Gray,
+                    fontSize = 13.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(10.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Checkbox(
+                        checked = selectedKeys.size == exportColumns.size,
+                        onCheckedChange = { checked ->
+
+                            selectedKeys =
+                                if (checked) {
+                                    exportColumns.map { it.key }.toSet()
+                                } else {
+                                    emptySet()
+                                }
+                        }
+                    )
+
+                    Text(
+                        "Select all",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Divider()
+
+                LazyColumn(
+                    modifier = Modifier.height(320.dp)
+                ) {
+
+                    items(exportColumns) { column ->
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            Checkbox(
+                                checked =
+                                    selectedKeys.contains(column.key),
+
+                                onCheckedChange = { checked ->
+
+                                    selectedKeys =
+                                        if (checked) {
+                                            selectedKeys + column.key
+                                        } else {
+                                            selectedKeys - column.key
+                                        }
+                                }
+                            )
+
+                            Text(column.label)
+                        }
+                    }
+                }
+            }
+        },
+
+        confirmButton = {
+
+            Button(
+                enabled = selectedKeys.isNotEmpty(),
+                onClick = {
+                    onExport(
+                        exportColumns
+                            .filter { selectedKeys.contains(it.key) }
+                            .map { it.key }
+                    )
+                }
+            ) {
+                Text("Create Excel")
+            }
+        },
+
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
