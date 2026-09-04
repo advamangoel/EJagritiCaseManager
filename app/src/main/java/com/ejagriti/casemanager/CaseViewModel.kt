@@ -174,10 +174,13 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
      *   different identifiers, it is treated as a conflict and skipped.
      *
      * Existing Litigation ID is preserved when OCR/Excel does not contain it.
+     *
+     * The callback intentionally remains Int-compatible with the existing
+     * ImportCaptureScreen. It reports added + updated records.
      */
     fun importCases(
         importedCases: List<CaseEntity>,
-        onFinished: (ImportSaveResult) -> Unit
+        onFinished: (Int) -> Unit
     ) {
         viewModelScope.launch {
             var added = 0
@@ -268,14 +271,17 @@ class CaseViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
-            onFinished(
-                ImportSaveResult(
-                    added = added,
-                    updated = updated,
-                    skipped = skipped,
-                    conflicts = conflicts
-                )
+            // Keep the existing UI callback contract intact.
+            // Detailed counters remain available in ImportSaveResult if
+            // another screen needs them later.
+            val result = ImportSaveResult(
+                added = added,
+                updated = updated,
+                skipped = skipped,
+                conflicts = conflicts
             )
+
+            onFinished(result.added + result.updated)
         }
     }
 }
