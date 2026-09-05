@@ -2119,7 +2119,7 @@ fun CaseFormDialog(
     var courtCommission by remember {
         mutableStateOf(
             initialCase?.courtCommission
-                ?: "District Consumer Commission"
+                ?: "District Consumer Disputes Redressal Commission"
         )
     }
 
@@ -2252,9 +2252,9 @@ fun CaseFormDialog(
                         label = "Commission",
                         selectedValue = courtCommission,
                         options = listOf(
-                            "District Consumer Commission",
-                            "State Consumer Commission",
-                            "National Consumer Commission"
+                            "District Consumer Disputes Redressal Commission",
+                            "State Consumer Disputes Redressal Commission",
+                            "National Consumer Disputes Redressal Commission"
                         ),
                         onValueSelected = {
                             courtCommission = it
@@ -2294,24 +2294,35 @@ fun CaseFormDialog(
                             "Tamil Nadu",
                             "Uttar Pradesh",
                             "Rajasthan",
-                            "Madhya Pradesh"
+                            "Madhya Pradesh",
+                            "Goa",
+                            "Kerala",
+                            "West Bengal",
+                            "Telangana",
+                            "Andhra Pradesh",
+                            "Haryana",
+                            "Punjab",
+                            "Bihar",
+                            "Odisha",
+                            "Other"
                         ),
                         onValueSelected = {
                             state = it
+                            if (district !in districtsForState(it, district)) {
+                                district = ""
+                            }
                         }
                     )
                 }
 
                 item {
 
-                    OutlinedTextField(
-                        value = district,
-                        onValueChange = {
-                            district = it
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = {
-                            Text("District")
+                    SimpleDropdown(
+                        label = "District",
+                        selectedValue = district.ifBlank { "Select district" },
+                        options = districtsForState(state, district),
+                        onValueSelected = {
+                            district = if (it == "Select district") "" else it
                         }
                     )
                 }
@@ -2329,13 +2340,18 @@ fun CaseFormDialog(
                 item {
 
                     SimpleDropdown(
-                        label = "Case Status",
+                        label = "Final Status",
                         selectedValue = caseStatus,
                         options = listOf(
                             "Pending",
                             "Disposed",
                             "Stayed",
-                            "Withdrawn"
+                            "Withdrawn",
+                            "Settled",
+                            "Dismissed",
+                            "Allowed",
+                            "Partly Allowed",
+                            "Transferred"
                         ),
                         onValueSelected = {
                             caseStatus = it
@@ -2431,17 +2447,20 @@ fun SimpleDropdown(
             modifier = Modifier.padding(bottom = 4.dp)
         )
 
-        OutlinedTextField(
-            value = selectedValue,
-            onValueChange = {},
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    expanded = true
-                },
-            readOnly = true,
-            singleLine = true
-        )
+                .clickable { expanded = true }
+        ) {
+            OutlinedTextField(
+                value = selectedValue,
+                onValueChange = {},
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                enabled = false,
+                singleLine = true
+            )
+        }
 
         DropdownMenu(
             expanded = expanded,
@@ -2489,45 +2508,70 @@ fun DatePickerField(
             modifier = Modifier.padding(bottom = 4.dp)
         )
 
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
+                    value.split("-").takeIf { it.size == 3 }?.let { parts ->
+                        parts[0].toIntOrNull()?.let { calendar.set(Calendar.YEAR, it) }
+                        parts[1].toIntOrNull()?.let { calendar.set(Calendar.MONTH, it - 1) }
+                        parts[2].toIntOrNull()?.let { calendar.set(Calendar.DAY_OF_MONTH, it) }
+                    }
 
                     DatePickerDialog(
                         context,
-
                         { _, year, month, day ->
-
-                            val formattedDate =
-                                "%04d-%02d-%02d".format(
-                                    year,
-                                    month + 1,
-                                    day
-                                )
-
-                            onDateSelected(formattedDate)
+                            onDateSelected("%04d-%02d-%02d".format(year, month + 1, day))
                         },
-
                         calendar.get(Calendar.YEAR),
                         calendar.get(Calendar.MONTH),
                         calendar.get(Calendar.DAY_OF_MONTH)
-
                     ).show()
-                },
+                }
+        ) {
+            OutlinedTextField(
+                value = value,
+                onValueChange = {},
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
+                enabled = false,
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.CalendarMonth,
+                        contentDescription = "Choose next hearing date"
+                    )
+                }
+            )
+        }
+    }
+}
 
-            readOnly = true,
+private fun districtsForState(state: String, currentDistrict: String): List<String> {
+    val districts = when (state) {
+        "Maharashtra" -> listOf("Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nashik", "Pune", "Solapur", "Thane")
+        "Delhi" -> listOf("Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi")
+        "Gujarat" -> listOf("Ahmedabad", "Anand", "Bhavnagar", "Jamnagar", "Rajkot", "Surat", "Vadodara")
+        "Karnataka" -> listOf("Bengaluru Urban", "Belagavi", "Dakshina Kannada", "Mysuru", "Shivamogga", "Udupi")
+        "Tamil Nadu" -> listOf("Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli", "Tirunelveli")
+        "Uttar Pradesh" -> listOf("Agra", "Allahabad", "Bareilly", "Ghaziabad", "Gorakhpur", "Kanpur Nagar", "Lucknow", "Meerut", "Varanasi")
+        "Rajasthan" -> listOf("Ajmer", "Bikaner", "Jaipur", "Jodhpur", "Kota", "Udaipur")
+        "Madhya Pradesh" -> listOf("Bhopal", "Gwalior", "Indore", "Jabalpur", "Ujjain")
+        "Goa" -> listOf("North Goa", "South Goa")
+        "Kerala" -> listOf("Ernakulam", "Kozhikode", "Thiruvananthapuram", "Thrissur")
+        "West Bengal" -> listOf("Howrah", "Kolkata", "North 24 Parganas", "Siliguri")
+        "Telangana" -> listOf("Hyderabad", "Medchal-Malkajgiri", "Rangareddy", "Warangal")
+        "Andhra Pradesh" -> listOf("Guntur", "Krishna", "Sri Potti Sriramulu Nellore", "Visakhapatnam")
+        "Haryana" -> listOf("Faridabad", "Gurugram", "Hisar", "Panchkula", "Sonipat")
+        "Punjab" -> listOf("Amritsar", "Bathinda", "Jalandhar", "Ludhiana", "Patiala")
+        "Bihar" -> listOf("Bhagalpur", "Gaya", "Muzaffarpur", "Patna")
+        "Odisha" -> listOf("Bhubaneswar", "Cuttack", "Puri", "Sambalpur")
+        else -> listOf("Other district")
+    }
 
-            trailingIcon = {
-
-                Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = null
-                )
-            }
-        )
+    return buildList {
+        add("Select district")
+        if (currentDistrict.isNotBlank() && currentDistrict !in districts) add(currentDistrict)
+        addAll(districts)
     }
 }
 
